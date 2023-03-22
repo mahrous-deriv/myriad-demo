@@ -1,0 +1,164 @@
+version: "3.2"
+
+services:
+
+  trading:
+    tty: true
+    build: service/trading
+    command: ["Deriv::Service::Trading"]
+    environment:
+      - MYRIAD_LIBRARY_PATH=/opt/app/lib
+      - MYRIAD_LOG_LEVEL=debug
+      - MYRIAD_TRANSPORT=redis
+      - MYRIAD_TRANSPORT_CLUSTER=1
+      - MYRIAD_TRANSPORT_REDIS=redis://support-redis-main-0:6379
+    networks:
+      - support-redis-main
+    volumes:
+      - ./service/trading:/opt/app/
+    restart: always
+
+  payment:
+    tty: true
+    build: service/payment
+    command: ["Deriv::Service::Payment"]
+    environment:
+      - MYRIAD_LIBRARY_PATH=/opt/app/lib
+      - MYRIAD_LOG_LEVEL=debug
+      - MYRIAD_TRANSPORT=redis
+      - MYRIAD_TRANSPORT_CLUSTER=1
+      - MYRIAD_TRANSPORT_REDIS=redis://support-redis-main-0:6379
+    networks:
+      - support-redis-main
+    volumes:
+      - ./service/payment:/opt/app/
+    restart: always
+    
+  reporting:
+    tty: true
+    build: service/reporting
+    command: ["Deriv::Service::Reporting"]
+    environment:
+      - MYRIAD_LIBRARY_PATH=/opt/app/lib
+      - MYRIAD_LOG_LEVEL=debug
+      - MYRIAD_TRANSPORT=redis
+      - MYRIAD_TRANSPORT_CLUSTER=1
+      - MYRIAD_TRANSPORT_REDIS=redis://support-redis-main-0:6379
+    networks:
+      - support-redis-main
+    volumes:
+      - ./service/reporting:/opt/app/
+    restart: always
+
+  support-redis-main-0:
+    tty: true
+    image: bitnami/redis-cluster:latest
+    container_name: support-redis-main-0
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+      - REDIS_CLUSTER_CREATOR=yes
+      - REDIS_CLUSTER_REPLICAS=0
+      - REDIS_DNS_RETRIES=30
+      - REDIS_CLUSTER_DNS_LOOKUP_RETRIES=30
+      - REDIS_CLUSTER_SLEEP_BEFORE_DNS_LOOKUP=10
+      - REDIS_NODES=support-redis-main-0 support-redis-main-1 support-redis-main-2 support-redis-main-3 support-redis-main-4 support-redis-main-5
+    networks:
+      - support-redis-main
+    volumes:
+      - support-redis-main-0-data:/bitnami
+    restart: always
+
+  support-redis-main-1:
+    tty: true
+    image: bitnami/redis-cluster:latest
+    container_name: support-redis-main-1
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+      - REDIS_CLUSTER_REPLICAS=0
+      - REDIS_DNS_RETRIES=30
+      - REDIS_CLUSTER_DNS_LOOKUP_RETRIES=30
+      - REDIS_CLUSTER_SLEEP_BEFORE_DNS_LOOKUP=10
+      - REDIS_NODES=support-redis-main-0 support-redis-main-1 support-redis-main-2 support-redis-main-3 support-redis-main-4 support-redis-main-5
+    networks:
+      - support-redis-main
+    volumes:
+      - support-redis-main-1-data:/bitnami
+    restart: always
+
+  support-redis-main-2:
+    tty: true
+    image: bitnami/redis-cluster:latest
+    container_name: support-redis-main-2
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+      - REDIS_CLUSTER_REPLICAS=0
+      - REDIS_DNS_RETRIES=30
+      - REDIS_CLUSTER_DNS_LOOKUP_RETRIES=30
+      - REDIS_CLUSTER_SLEEP_BEFORE_DNS_LOOKUP=10
+      - REDIS_NODES=support-redis-main-0 support-redis-main-1 support-redis-main-2 support-redis-main-3 support-redis-main-4 support-redis-main-5
+      - support-redis-main
+    volumes:
+      - support-redis-main-2-data:/bitnami
+    restart: always
+
+  support-redis-main-3:
+    tty: true
+    image: bitnami/redis-cluster:latest
+    container_name: support-redis-main-3
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+      - REDIS_CLUSTER_REPLICAS=0
+      - REDIS_DNS_RETRIES=30
+      - REDIS_CLUSTER_DNS_LOOKUP_RETRIES=30
+      - REDIS_CLUSTER_SLEEP_BEFORE_DNS_LOOKUP=10
+      - REDIS_NODES=support-redis-main-0 support-redis-main-1 support-redis-main-2 support-redis-main-3 support-redis-main-4 support-redis-main-5
+    networks:
+      - support-redis-main
+    volumes:
+      - support-redis-main-3-data:/bitnami
+    restart: always
+
+  support-redis-main-4:
+    tty: true
+    image: bitnami/redis-cluster:latest
+    container_name: support-redis-main-4
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+      - REDIS_CLUSTER_REPLICAS=0
+      - REDIS_DNS_RETRIES=30
+      - REDIS_CLUSTER_DNS_LOOKUP_RETRIES=30
+      - REDIS_CLUSTER_SLEEP_BEFORE_DNS_LOOKUP=10
+      - REDIS_NODES=support-redis-main-0 support-redis-main-1 support-redis-main-2 support-redis-main-3 support-redis-main-4 support-redis-main-5
+    networks:
+      - support-redis-main
+    volumes:
+      - support-redis-main-4-data:/bitnami
+    restart: always
+
+  support-redis-main-5:
+    tty: true
+    image: bitnami/redis-cluster:latest
+    container_name: support-redis-main-5
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+      - REDIS_CLUSTER_REPLICAS=0
+      - REDIS_DNS_RETRIES=30
+      - REDIS_CLUSTER_DNS_LOOKUP_RETRIES=30
+      - REDIS_CLUSTER_SLEEP_BEFORE_DNS_LOOKUP=10
+      - REDIS_NODES=support-redis-main-0 support-redis-main-1 support-redis-main-2 support-redis-main-3 support-redis-main-4 support-redis-main-5
+    networks:
+      - support-redis-main
+    volumes:
+      - support-redis-main-5-data:/bitnami
+    restart: always
+
+volumes:
+  support-redis-main-0-data:
+  support-redis-main-1-data:
+  support-redis-main-2-data:
+  support-redis-main-3-data:
+  support-redis-main-4-data:
+  support-redis-main-5-data:
+
+networks:
+  support-redis-main:
