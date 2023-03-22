@@ -1,24 +1,26 @@
 package Deriv::Service::Payment;
 
-# Simple batch method example.
-
 use Myriad::Service;
 
-has $count = 0;
+has $timer;
+
+async method startup () {
+    $timer = 10;
+}
 
 async method diagnostics ($level) {
-    return 'ok';
+    return 'ok' if defined $timer;
 }
 
-async method current : RPC {
-    return $count;
+async method current_timer : RPC (%args) {
+    return $timer;
 }
 
-async method next_batch : Batch {
-    my $srv = await $api->service_by_name('myriad.example.call'); 
-    my $res = await $srv->target_method;
-    $log->infof("Three got %s", $res);
-    return 
+async method next_batch : Batch () {
+    $log->infof('Hello');
+    await $self->loop->delay_future(after => $timer);
+    return [];
+
 }
 
 1;
