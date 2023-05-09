@@ -34,7 +34,7 @@ services:
     volumes:
       - ./service/payment:/opt/app/
     restart: always
-    
+
   reporting:
     container_name: reporting
     tty: true
