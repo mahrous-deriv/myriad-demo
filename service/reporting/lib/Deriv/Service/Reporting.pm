@@ -2,37 +2,40 @@ package Deriv::Service::Reporting;
 
 use Myriad::Service;
 use Ryu::Source;
+use Database::Async;
+use Database::Async::Engine::PostgreSQL;
+use JSON::MaybeUTF8 qw(encode_json_utf8);
 
-has $count;
-has $value;
 has $call_event_handler = Ryu::Source->new;
+has $events;
+has $dbh;
+has $trading_svc;
+has $payment_svc;
 
-async method startup () {
-    $count = 0;
+async method startup() {
+    $events = $self->ryu->source;
+    $self->add_child(
+        $dbh = Database::Async->new(
+            uri => $ENV{DATABASE_URL},
+            pool => {
+                max => 8
+            }
+        )
+    );
+    $trading_svc = $api->service_by_name('deriv.service.trading');
+    $payment_svc = $api->service_by_name('deriv.service.payment');
 }
 
 async method diagnostics ($level) {
-    return 'ok' if defined $count;
+    return 'ok';
 }
 
-async method current : RPC {
-    return { value => $value, count => $count};
-}
-
-async method update : RPC (%args) {
-    $value = $args{new_value};
-    $count = 0 if $args{reset};
-    $call_event_handler->emit(1);
-    return await $self->current;
-}
-
-async method value_updated : Emitter() ($sink, $api, %args){
-    $call_event_handler->each(sub {
-        my $emit = shift;
-        $log->infof($emit);
-        my $e = {name => "EMITTER-Trigger service", value => $value, count => ++$count};
-        $sink->emit($e) if $emit;
-    });
+async method payment : Receiver(service => 'deriv.service.payment', channel => 'publish_payment_event') ($sink) {
+    $log->info('Receiver');
+  return $sink->map(async sub {
+        my $payment_data = shift;
+        $log->infof(encode_json_utf8 $payment_data);
+    })->resolve;
 }
 
 1;

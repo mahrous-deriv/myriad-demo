@@ -1,0 +1,2 @@
+requires 'Database::Async';
+requires 'Database::Async::Engine::PostgreSQL';
