@@ -39,7 +39,9 @@ async method process_payment : RPC (%payment) {
             $payment{id} = await $self->store_payment(%payment);
             die "Could not store payment" if $payment{id} eq '-1';
             $self->publish_payment_event($payment{symbol}, $payment{amount}, $payment{id});
+            $log->infof('ID of new payment %s', $payment{id});
             $events->emit(\%payment);
+            $log->infof('Emitted new payment event %s', \%payment);
             return { state => 'success', content => $payment{id} };
         } catch ($e) {
             return { state => 'fail', content => $e };

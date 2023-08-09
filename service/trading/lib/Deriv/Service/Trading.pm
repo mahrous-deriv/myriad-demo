@@ -5,7 +5,6 @@ use Ryu::Source;
 use Database::Async;
 use Database::Async::Engine::PostgreSQL;
 use JSON::MaybeUTF8 qw(decode_json_utf8);
-use XXX;
 
 has $events;
 has $dbh;

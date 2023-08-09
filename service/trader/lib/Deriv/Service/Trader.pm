@@ -7,7 +7,6 @@ use JSON::MaybeUTF8 qw(decode_json_utf8);
 has $trading_svc;
 has $reporting_svc;
 has $payment_svc;
-has $timer;
 has $events;
 
 async method startup() {
@@ -23,9 +22,9 @@ async method diagnostics ($level) {
 
 async method next_batch : Batch () {
     $log->infof('Trader trading...');
-    #await $self->loop->delay_future(after => $timer);
     my ($user_id, $symbol_id, $type, $amount) = (1, 1, 'deposit', 10.00);
     my $res = await $payment_svc->call_rpc("process_payment", (user_id => $user_id, symbol_id => $symbol_id, type => $type, amount => $amount, gateway => 'cashier'), timeout => 60);
+    await $self->loop->delay_future(after => 10);
     return [];
 }
 
