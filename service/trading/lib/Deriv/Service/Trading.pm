@@ -43,9 +43,9 @@ method store_transaction (%transaction) {
     return {success => 1, content => $transaction{id}};
 }
 
-async method publish_transaction_event ($type, $amount, $transaction_id) {
-    my $event_data = {type => $type, amount => $amount, transaction_id => $transaction_id};
-	$events->emit({transaction => encode_json_utf8($event_data)});
+async method publish_transaction_event : Emitter() ($sink) {
+    $sink->from($events);
+    await $sink->source->completed;
 }
 
 1;
