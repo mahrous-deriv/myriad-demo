@@ -35,7 +35,9 @@ async method create_order : RPC (%order) {
     $order{state} = 'pending';
     await $self->store_transaction($order{symbol}, $order{amount}, );
     $log->info('Publishing transaction event');
-    await $self->publish_transaction_event($order{symbol}, $order{amount}, $order{id});
+    $self->publish_transaction_event($order{symbol}, $order{amount}, $order{id});
+    $events->emit(\%order);
+    $log->infof('Emitted new transaction event %s', \%order);
     return { state => 'success', content => $order{id} };
 }
 

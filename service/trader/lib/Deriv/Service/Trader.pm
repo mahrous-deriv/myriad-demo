@@ -22,8 +22,13 @@ async method diagnostics ($level) {
 
 async method next_batch : Batch () {
     $log->infof('Trader trading...');
+
     my ($user_id, $symbol_id, $type, $amount) = (1, 1, 'deposit', 10.00);
+
     my $res = await $payment_svc->call_rpc("process_payment", (user_id => $user_id, symbol_id => $symbol_id, type => $type, amount => $amount, gateway => 'cashier'), timeout => 60);
+
+    my $trade = await $trading_svc->call_rpc("create_order", (user_id => $user_id, symbol => 'frxUSDJPY', type => $type, amount => $amount), timeout => 60);
+
     await $self->loop->delay_future(after => 10);
     return [];
 }

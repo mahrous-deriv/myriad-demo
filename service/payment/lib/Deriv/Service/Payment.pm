@@ -57,7 +57,7 @@ method is_valid_payment (%args) {
 }
 
 async method publish_payment_event : Emitter() ($sink) {
-    $log->infof('Emitter up and emitting...');
+    $log->infof('Payment: Emitter up and emitting...');
     $sink->from($events);
     await $sink->source->completed;
 }

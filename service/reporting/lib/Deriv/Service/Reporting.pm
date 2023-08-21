@@ -31,10 +31,18 @@ async method diagnostics ($level) {
 }
 
 async method payment : Receiver(service => 'deriv.service.payment', channel => 'publish_payment_event') ($sink) {
-    $log->info('Receiver');
+  $log->info('Receiver payment');
   return $sink->map(async sub {
         my $payment_data = shift;
-        $log->infof(encode_json_utf8 $payment_data);
+        $log->infof('Payment event data %s', encode_json_utf8 $payment_data);
+    })->resolve;
+}
+
+async method transaction : Receiver(service => 'deriv.service.trading', channel => 'publish_transaction_event') ($sink) {
+  $log->info('Receiver trading');
+  return $sink->map(async sub {
+        my $transaction_data = shift;
+        $log->infof('Transaction event data %s', encode_json_utf8 $transaction_data);
     })->resolve;
 }
 
