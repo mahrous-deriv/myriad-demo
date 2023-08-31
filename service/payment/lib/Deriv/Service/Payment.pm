@@ -30,25 +30,24 @@ async method diagnostics ($level) {
 }
 
 async method process_payment : RPC (%payment) {
-    foreach my $key (qw/user_id symbol_id type amount gateway/){
-        return { state => 'fail', content => "$key must be defined" } unless defined $payment{$key};
+    foreach my $key (qw/user_id symbol_id amount gateway/){
+        return { error => 1, content => "$key must be defined" } unless defined $payment{$key};
     } 
     if ( $self->is_valid_payment(%payment) ){
         $payment{state} = 'pending';
         try {
             $payment{id} = await $self->store_payment(%payment);
             die "Could not store payment" if $payment{id} eq '-1';
-            $self->publish_payment_event($payment{symbol}, $payment{amount}, $payment{id});
             $log->infof('ID of new payment %s', $payment{id});
             $events->emit(\%payment);
             $log->infof('Emitted new payment event %s', \%payment);
-            return { state => 'success', content => $payment{id} };
+            return { success => 1, content => \%payment };
         } catch ($e) {
-            return { state => 'fail', content => $e };
+            return { error => 1, content => $e };
         }
     } else {
         $log->errorf('Failed to process invalid payment.');
-        return { state => 'fail', content => 'Invalid payment'};
+        return { error => 1, content => 'Invalid payment'};
     }
 }
 
@@ -57,7 +56,6 @@ method is_valid_payment (%args) {
 }
 
 async method publish_payment_event : Emitter() ($sink) {
-    $log->infof('Payment: Emitter up and emitting...');
     $sink->from($events);
     await $sink->source->completed;
 }
@@ -73,6 +71,7 @@ async method store_payment (%payment) {
              ', $payment{user_id})->single;
         $balance += $payment{amount};
         my $res = await $dbh->query(q{SELECT * FROM payment.create_payment($1::integer, $2::integer, $3::payment.gateway, $4::numeric, $5::numeric)}, $payment{user_id}, '1235', $payment{gateway}, $payment{amount}, $balance // 0)->row_hashrefs->as_list;
+        $log->infof('Created payment: %s', $res);
         my $id = $res->{create_payment};
         return $id;
     } catch ($e) {

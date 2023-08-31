@@ -30,22 +30,16 @@ async method diagnostics ($level) {
 }
 
 async method create_order : RPC (%order) {
-    return { state => 'fail', content => "Must be defined" } unless keys %order;
-    $log->infof('Creating order %s', %order);
-    $order{state} = 'pending';
-    await $self->store_transaction($order{symbol}, $order{amount}, );
-    $log->info('Publishing transaction event');
-    $self->publish_transaction_event($order{symbol}, $order{amount}, $order{id});
+    foreach my $key (qw/user_id symbol amount type/){
+        return { error => 1, content => "$key must be defined" } unless defined $order{$key};
+    } 
+    $order{state} = 'done';
     $events->emit(\%order);
-    $log->infof('Emitted new transaction event %s', \%order);
-    return { state => 'success', content => $order{id} };
+    $log->infof('Created order %s', join(q{, }, map{qq{$_ => $order{$_}}} sort keys %order));
+    return { success => 1, content => \%order};
 }
 
-method store_transaction (%transaction) {
-    return {success => 1, content => $transaction{id}};
-}
-
-async method publish_transaction_event : Emitter() ($sink) {
+async method publish_trade_event : Emitter() ($sink) {
     $sink->from($events);
     await $sink->source->completed;
 }

@@ -2,47 +2,69 @@ package Deriv::Service::Reporting;
 
 use Myriad::Service;
 use Ryu::Source;
-use Database::Async;
-use Database::Async::Engine::PostgreSQL;
 use JSON::MaybeUTF8 qw(encode_json_utf8);
 
-has $call_event_handler = Ryu::Source->new;
-has $events;
-has $dbh;
-has $trading_svc;
-has $payment_svc;
+has %trade_stats = (
+    trade_count => 0,
+    total_amount => 0,
+);
 
-async method startup() {
-    $events = $self->ryu->source;
-    $self->add_child(
-        $dbh = Database::Async->new(
-            uri => $ENV{DATABASE_URL},
-            pool => {
-                max => 8
-            }
-        )
-    );
-    $trading_svc = $api->service_by_name('deriv.service.trading');
-    $payment_svc = $api->service_by_name('deriv.service.payment');
-}
+has %payment_stats = (
+    payment_count => 0,
+    total_amount => 0,
+);
+
+async method startup() {}
 
 async method diagnostics ($level) {
     return 'ok';
 }
 
-async method payment : Receiver(service => 'deriv.service.payment', channel => 'publish_payment_event') ($sink) {
-  $log->info('Receiver payment');
+async method trade: Receiver(
+  service => 'deriv.service.trading',
+  channel => 'publish_trade_event'
+) ($sink) {
   return $sink->map(async sub {
-        my $payment_data = shift;
-        $log->infof('Payment event data %s', encode_json_utf8 $payment_data);
+        my $trade_data = shift;
+        $trade_data = $trade_data->{data};
+        $log->infof('Trade event data %s', $trade_data);
+        $trade_stats{trade_count}++;
+        $trade_stats{total_amount} += $trade_data->{amount};
+        $log->infof('%s', encode_json_utf8 \%trade_stats);
     })->resolve;
 }
 
-async method transaction : Receiver(service => 'deriv.service.trading', channel => 'publish_transaction_event') ($sink) {
-  $log->info('Receiver trading');
+async method payment : Receiver(
+  service => 'deriv.service.payment',
+  channel => 'publish_payment_event'
+) ($sink) {
   return $sink->map(async sub {
-        my $transaction_data = shift;
-        $log->infof('Transaction event data %s', encode_json_utf8 $transaction_data);
+        my $payment_data = shift;
+        $log->infof('Payment event data %s', $payment_data);
+        $payment_stats{payment_count}++;
+        $payment_stats{total_amount} += $payment_data->{amount} // 0; 
+        $log->infof('%s', encode_json_utf8 \%payment_stats);
+    })->resolve;
+}
+
+
+async method trader_pay : Receiver(
+  service => 'deriv.service.trader',
+  channel => 'pay'
+) ($sink) {
+  return $sink->map(async sub {
+      my $data = shift;
+      $log->infof('Event data %s', encode_json_utf8 $data);
+    })->resolve;
+}
+
+async method trader_trade : Receiver(
+  service => 'deriv.service.trader',
+  channel => 'trade'
+) ($sink) {
+  return $sink->map(async sub {
+      my $data = shift;
+      $log->infof('Event data %s', encode_json_utf8 $data);
     })->resolve;
 }
 
