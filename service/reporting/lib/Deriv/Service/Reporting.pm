@@ -54,7 +54,7 @@ async method trader_pay : Receiver(
 ) ($sink) {
   return $sink->map(async sub {
       my $data = shift;
-      $log->infof('Event data %s', encode_json_utf8 $data);
+      $log->infof('New payment %s', encode_json_utf8 $data);
     })->resolve;
 }
 
@@ -64,7 +64,7 @@ async method trader_trade : Receiver(
 ) ($sink) {
   return $sink->map(async sub {
       my $data = shift;
-      $log->infof('Event data %s', encode_json_utf8 $data);
+      $log->infof('New trade %s', encode_json_utf8 $data);
     })->resolve;
 }
 
