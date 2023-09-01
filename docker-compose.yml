@@ -7,6 +7,7 @@ services:
     build: service/trading
     command: ["Deriv::Service::Trading"]
     environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/demo
       - MYRIAD_LIBRARY_PATH=/opt/app/lib
       - MYRIAD_LOG_LEVEL=debug
       - MYRIAD_TRANSPORT=redis
@@ -14,6 +15,7 @@ services:
       - MYRIAD_TRANSPORT_REDIS=redis://support-redis-main-0:6379
     networks:
       - support-redis-main
+      - support-postgres-main
     volumes:
       - ./service/trading:/opt/app/
     restart: always
@@ -24,6 +26,7 @@ services:
     build: service/payment
     command: ["Deriv::Service::Payment"]
     environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/demo
       - MYRIAD_LIBRARY_PATH=/opt/app/lib
       - MYRIAD_LOG_LEVEL=debug
       - MYRIAD_TRANSPORT=redis
@@ -31,6 +34,7 @@ services:
       - MYRIAD_TRANSPORT_REDIS=redis://support-redis-main-0:6379
     networks:
       - support-redis-main
+      - support-postgres-main
     volumes:
       - ./service/payment:/opt/app/
     restart: always
@@ -41,6 +45,25 @@ services:
     build: service/reporting
     command: ["Deriv::Service::Reporting"]
     environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/demo
+      - MYRIAD_LIBRARY_PATH=/opt/app/lib
+      - MYRIAD_LOG_LEVEL=debug
+      - MYRIAD_TRANSPORT=redis
+      - MYRIAD_TRANSPORT_CLUSTER=1
+      - MYRIAD_TRANSPORT_REDIS=redis://support-redis-main-0:6379
+    networks:
+      - support-redis-main
+      - support-postgres-main
+    volumes:
+      - ./service/reporting:/opt/app/
+    restart: always
+
+  trader:
+    container_name: trader
+    tty: true
+    build: service/trader
+    command: ["Deriv::Service::Trader"]
+    environment:
       - MYRIAD_LIBRARY_PATH=/opt/app/lib
       - MYRIAD_LOG_LEVEL=debug
       - MYRIAD_TRANSPORT=redis
@@ -49,7 +72,7 @@ services:
     networks:
       - support-redis-main
     volumes:
-      - ./service/reporting:/opt/app/
+      - ./service/trader:/opt/app/
     restart: always
 
   support-redis-main-0:
@@ -161,6 +184,23 @@ services:
       - support-redis-main-5-data:/bitnami
     restart: always
 
+  support-postgres:
+      container_name: postgres
+      build:
+        context: .
+        dockerfile: ./pgconfig/Dockerfile
+      ports:
+        - '5432:5432'
+      environment:
+        - DEBUG=true
+        - POSTGRES_USER=postgres
+        - POSTGRES_PASSWORD=password 
+        - POSTGRES_DB=demo
+      networks:
+        - support-postgres-main
+      volumes:
+        - ./postgres-data:/var/lib/postgresql/data 
+
 volumes:
   support-redis-main-0-data:
   support-redis-main-1-data:
@@ -171,3 +211,4 @@ volumes:
 
 networks:
   support-redis-main:
+  support-postgres-main:

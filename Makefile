@@ -16,5 +16,10 @@ redis-cli: which ?= main
 redis-cli: node ?= 0
 redis-cli: ## redis-cli for any needed instance. (which=name_of_redis  node=instance)
 	docker exec -it support-redis-${which}-${node} redis-cli -c
+
 redis-cluster-rejoin: ## rejoin redis cluster nodes
 	docker run --rm -v $(ROOT_DIR):/repo --entrypoint /bin/bash --network myriad-demo_support-redis-main deriv/myriad -c '/repo/bin/redis-cluster-rejoin.pl'
+
+psql: ## psql container to run queries in $db e.g make psql db=payout                                                                                                                                     
+	test -n "${db}"                                                                                                                                                                                         
+	docker run -it --rm --network myriad-demo_support-postgres-main bitnami/postgresql:15 psql -h postgres -U postgres -d ${db}  
