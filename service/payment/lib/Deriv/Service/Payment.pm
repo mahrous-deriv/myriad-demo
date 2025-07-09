@@ -6,10 +6,10 @@ use Database::Async;
 use Database::Async::Engine::PostgreSQL;
 use JSON::MaybeUTF8 qw(decode_json_utf8);
 
-has $events;
-has $dbh;
-has $trading_svc;
-has $reporting_svc;
+field $events;
+field $dbh;
+field $trading_svc;
+field $reporting_svc;
 
 async method startup() {
     $events = $self->ryu->source;

@@ -4,12 +4,12 @@ use Myriad::Service;
 use Ryu::Source;
 use JSON::MaybeUTF8 qw(encode_json_utf8);
 
-has %trade_stats = (
+field %trade_stats = (
     trade_count => 0,
     total_amount => 0,
 );
 
-has %payment_stats = (
+field %payment_stats = (
     payment_count => 0,
     total_amount => 0,
 );

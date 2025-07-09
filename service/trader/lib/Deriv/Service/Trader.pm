@@ -4,10 +4,10 @@ use Myriad::Service;
 use Ryu::Source;
 use JSON::MaybeUTF8 qw(decode_json_utf8);
 
-has $events;
-has $trading_svc;
-has $reporting_svc;
-has $payment_svc;
+field $events;
+field $trading_svc;
+field $reporting_svc;
+field $payment_svc;
 
 async method startup() {
     $events = $self->ryu->source;
