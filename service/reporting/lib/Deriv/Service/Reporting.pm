@@ -25,12 +25,16 @@ async method trade: Receiver(
   channel => 'publish_trade_event'
 ) ($sink) {
   return $sink->map(async sub {
-        my $trade_data = shift;
-        $trade_data = $trade_data->{data};
+        my $event = shift;
+        my $trade_data = $event->{data} // $event; 
         $log->infof('Trade event data %s', $trade_data);
-        $trade_stats{trade_count}++;
-        $trade_stats{total_amount} += $trade_data->{amount};
-        $log->infof('%s', encode_json_utf8 \%trade_stats);
+        if (defined $trade_data->{amount}) {
+            $trade_stats{trade_count}++;
+            $trade_stats{total_amount} += $trade_data->{amount};
+            $log->infof('Updated trade stats: %s', encode_json_utf8 \%trade_stats);
+        } else {
+            $log->warnf('Trade event received without amount: %s', $trade_data);
+        }
     })->resolve;
 }
 
@@ -39,14 +43,18 @@ async method payment : Receiver(
   channel => 'publish_payment_event'
 ) ($sink) {
   return $sink->map(async sub {
-        my $payment_data = shift;
+        my $event = shift;
+        my $payment_data = $event->{data} // $event;
         $log->infof('Payment event data %s', $payment_data);
-        $payment_stats{payment_count}++;
-        $payment_stats{total_amount} += $payment_data->{amount} // 0; 
-        $log->infof('%s', encode_json_utf8 \%payment_stats);
+        if (defined $payment_data->{amount}) {
+            $payment_stats{payment_count}++;
+            $payment_stats{total_amount} += $payment_data->{amount};
+            $log->infof('Updated payment stats: %s', encode_json_utf8 \%payment_stats);
+        } else {
+            $log->warnf('Payment event received without amount: %s', $payment_data);
+        }
     })->resolve;
 }
-
 
 async method trader_pay : Receiver(
   service => 'deriv.service.trader',
@@ -54,7 +62,7 @@ async method trader_pay : Receiver(
 ) ($sink) {
   return $sink->map(async sub {
       my $data = shift;
-      $log->infof('New payment %s', encode_json_utf8 $data);
+      $log->infof('Received trader pay event: %s', encode_json_utf8 $data);
     })->resolve;
 }
 
@@ -64,8 +72,19 @@ async method trader_trade : Receiver(
 ) ($sink) {
   return $sink->map(async sub {
       my $data = shift;
-      $log->infof('New trade %s', encode_json_utf8 $data);
+      $log->infof('Received trader trade event: %s', encode_json_utf8 $data);
     })->resolve;
 }
 
+async method get_reporting_stats : RPC () {
+    return {
+        success => 1,
+        content => {
+            trade_stats   => \%trade_stats,
+            payment_stats => \%payment_stats,
+        }
+    };
+}
+
 1;
+

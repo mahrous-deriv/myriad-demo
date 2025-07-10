@@ -30,20 +30,26 @@ async method diagnostics ($level) {
 }
 
 async method process_payment : RPC (%payment) {
-    foreach my $key (qw/user_id symbol_id amount gateway/){
+    foreach my $key (qw/user_id amount gateway/){ # symbol_id removed as it's not used in store_payment
         return { error => 1, content => "$key must be defined" } unless defined $payment{$key};
-    } 
+    }
+    # Basic validation
+    return { error => 1, content => "user_id must be an integer" } unless $payment{user_id} =~ /^\d+$/;
+    return { error => 1, content => "amount must be a positive number" } unless $payment{amount} =~ /^\d*(\.\d+)?$/ && $payment{amount} > 0;
+    return { error => 1, content => "gateway must be 'trading' or 'cashier'" } unless $payment{gateway} eq 'trading' || $payment{gateway} eq 'cashier';
+
     if ( $self->is_valid_payment(%payment) ){
         $payment{state} = 'pending';
         try {
             $payment{id} = await $self->store_payment(%payment);
-            die "Could not store payment" if $payment{id} eq '-1';
+            die "Could not store payment" if $payment{id} eq '-1' || $payment{id} == 0; # id can be 0 on error from store_payment
             $log->infof('ID of new payment %s', $payment{id});
             $events->emit(\%payment);
             $log->infof('Emitted new payment event %s', \%payment);
             return { success => 1, content => \%payment };
         } catch ($e) {
-            return { error => 1, content => $e };
+            $log->errorf("Error processing payment: %s", $e);
+            return { error => 1, content => "Error processing payment: $e" };
         }
     } else {
         $log->errorf('Failed to process invalid payment.');
@@ -82,13 +88,40 @@ async method store_payment (%payment) {
 
 async method get_payment_status : RPC (%args) {
     my $payment_id = $args{payment_id};
-    return 'successful';
+    return { error => 1, content => "payment_id must be defined" } unless defined $payment_id;
+    return { error => 1, content => "payment_id must be an integer" } unless $payment_id =~ /^\d+$/;
+
+    try {
+        my $status = await $dbh->query_single(
+            q{SELECT CASE WHEN EXISTS (SELECT 1 FROM payment.payment WHERE id = $1) THEN 'successful' ELSE 'not_found' END},
+            $payment_id
+        );
+        # In a real scenario, we might have more statuses like 'pending', 'failed', etc.
+        # For now, we assume if it exists, it's 'successful' as per the original placeholder.
+        # The payment table itself doesn't have a status column yet.
+        return { success => 1, content => { payment_id => $payment_id, status => $status } };
+    } catch ($e) {
+        $log->errorf("Error fetching payment status for ID %s: %s", $payment_id, $e);
+        return { error => 1, content => "Error fetching payment status: $e" };
+    }
 }
 
 async method get_payment_history : RPC (%args) {
     my $user_id = $args{user_id};
-    my @payment_history = (); 
-    return \@payment_history;
+    return { error => 1, content => "user_id must be defined" } unless defined $user_id;
+    return { error => 1, content => "user_id must be an integer" } unless $user_id =~ /^\d+$/;
+
+    try {
+        my $rows = await $dbh->query(
+            q{SELECT id, foreign_id, created_at, gateway, amount, balance FROM payment.payment WHERE user_id = $1 ORDER BY created_at DESC},
+            $user_id
+        )->row_hashrefs->as_list;
+
+        return { success => 1, content => $rows };
+    } catch ($e) {
+        $log->errorf("Error fetching payment history for user ID %s: %s", $user_id, $e);
+        return { error => 1, content => "Error fetching payment history: $e" };
+    }
 }
 
 1;
